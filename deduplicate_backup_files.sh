@@ -171,7 +171,7 @@ while IFS= read -r dbfile_size; do
                 referenceFile="${file}"
             else
                 #file compared to referenceFile
-                if (( !($(areFilesHardlinked "${referenceFile}" "${file})) )); then
+                if (( !($(areFilesHardlinked "${referenceFile}" "${file}")) )); then
                     if [ "${referenceMD5sum}" == "" ]; then
                         #Md5sum referenceFile if not done before
                         referenceMD5sum=$(${MD5SUM} "${referenceFile}" | ${CUT} -f1 -d " ")
