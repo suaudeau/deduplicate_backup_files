@@ -130,7 +130,7 @@ fi
 targetDir=${1}
 
 #clean temp files
-${RM} -rf ${DB_DIR} ${DEDUP_INSTRUCTIONS}MKTEMP
+${RM} -rf ${DB_DIR} ${DEDUP_INSTRUCTIONS}
 ${MKDIR} -p ${DB_DIR}
 
 #===========================================================================
@@ -140,7 +140,7 @@ ${ECHO} "STEP 1: Build a database of files classified by their sizes"
 #for every file su
 CurrentNbFile=0
 ${FIND} "${targetDir}" -type f -size +0 > "${TEMPO_LIST_OF_FILES}"
-TotalNbFile=$(${CAT} ${TEMPO_LIST_OF_FILES} | ${WC} -l)MKTEMP
+TotalNbFile=$(${CAT} ${TEMPO_LIST_OF_FILES} | ${WC} -l)
 while IFS= read -r file; do
     #Build a database of files classified by their sizes
     ${ECHO} "${file}" >> ${DB_DIR}/$(getSizeOfFile "${file}").txt
@@ -150,7 +150,7 @@ done < "${TEMPO_LIST_OF_FILES}"
 ${ECHO}
 #===========================================================================
 # STEP 2: For each different files with the same size, build a sub-database
-#         of files classified by their MD5SUMMKTEMP
+#         of files classified by their MD5SUM
 #===========================================================================
 ${ECHO} "STEP 2: Build a sub-database of files classified by their hash"
 ((TotalNbSizes=0))
@@ -166,7 +166,7 @@ while IFS= read -r dbfile_size; do
         # For each same size file writen in this DB.
         while IFS= read -r file; do
             if (( nbFile == 0 )); then
-                #set the first listed file as referenceFileMKTEMP
+                #set the first listed file as referenceFile
                 referenceFile=${file}
             else
                 #file compared to referenceFile
@@ -181,7 +181,7 @@ while IFS= read -r dbfile_size; do
                     fi
                     #Md5sum current file
                     fileMD5sum=$(${MD5SUM} "${file}" | ${CUT} -f1 -d " ")
-                    formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${file}"))MKTEMP
+                    formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${file}"))
                     ${ECHO} "${formated_inode}${file}" >> ${size_dir}/${fileMD5sum}.txt
                 fi
             fi
@@ -197,7 +197,7 @@ ${ECHO}
 #===========================================================================
 ${ECHO} "STEP 3: Generate script"
 ((TotalSizeSaved=0))
-${FIND} "${DB_DIR}" -type d > "${TEMPO_LIST_OF_DIRS}"MKTEMP
+${FIND} "${DB_DIR}" -type d > "${TEMPO_LIST_OF_DIRS}"
 while read dbdir_md5sum; do
     #suppress root dir
     if [[ "${dbdir_md5sum}" != "${DB_DIR}" ]]; then
@@ -211,7 +211,7 @@ while read dbdir_md5sum; do
             while IFS= read -r line; do
                 if (( nbFile == 0 )); then
                     referenceFile="${line}"
-                elseMKTEMP
+                else
                     #Generate instructions
                     ${ECHO} rm -f \"${line}\" >> ${DEDUP_INSTRUCTIONS}
                     ${ECHO} cp -al \"${referenceFile}\" \"${line}\" >> ${DEDUP_INSTRUCTIONS}
@@ -228,10 +228,10 @@ done < "${TEMPO_LIST_OF_DIRS}"
 ${ECHO}
 #===========================================================================
 # STEP 4: Display instructions
-#===========================================================================MKTEMP
+#===========================================================================
 ${ECHO}
 #${ECHO} "Here are the instructions for deduplicate:"
-#${ECHO} "----------------------MKTEMP------------------------------------"
+#${ECHO} "----------------------------------------------------------"
 #cat ${DEDUP_INSTRUCTIONS}
 ${RM} -rf ${DB_DIR} ${TEMPO_LIST_OF_DIRS} ${TEMPO_LIST_OF_FILES}
 ${ECHO} "----------------------------------------------------------"
