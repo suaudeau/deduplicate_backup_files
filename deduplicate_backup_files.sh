@@ -3,9 +3,11 @@
 #----------------------------------------------------------------------
 #  Preliminary actions
 #----------------------------------------------------------------------
-readonly WHICH=/usr/bin/which
+WHICH=/usr/bin/which
 
-die() { echo "$@" 1>&2 ; exit 1; }
+#"quit" is to replace "exit 1" that avoid exit also the shell
+quit() { kill -SIGINT $$; }
+die() { echo "$@" 1>&2 ; quit; }
 
 #===  FUNCTION  ================================================================
 #         NAME:  getPathAndCheckInstall
@@ -30,26 +32,26 @@ getPathAndCheckInstall() {
 #----------------------------------------------------------------------
 #  Get the path of all programs
 #----------------------------------------------------------------------
-readonly CAT=$(getPathAndCheckInstall cat)
-readonly CUT=$(getPathAndCheckInstall cut)
-readonly ECHO=$(getPathAndCheckInstall echo)
-readonly MKDIR=$(getPathAndCheckInstall mkdir)
-readonly RM=$(getPathAndCheckInstall rm)
-readonly MKTEMP=$(getPathAndCheckInstall mktemp)
+CAT=$(getPathAndCheckInstall cat)
+CUT=$(getPathAndCheckInstall cut)
+ECHO=$(getPathAndCheckInstall echo)
+MKDIR=$(getPathAndCheckInstall mkdir)
+RM=$(getPathAndCheckInstall rm)
+MKTEMP=$(getPathAndCheckInstall mktemp)
 
-readonly STAT=$(getPathAndCheckInstall stat)
-readonly FIND=$(getPathAndCheckInstall find)
-readonly MD5SUM=$(getPathAndCheckInstall md5sum)
-readonly UNIQ=$(getPathAndCheckInstall uniq)
-readonly WC=$(getPathAndCheckInstall wc)
-readonly SORT=$(getPathAndCheckInstall sort)
-readonly PRINTF=$(getPathAndCheckInstall printf)
-readonly NUMFMT=$(getPathAndCheckInstall numfmt)
+STAT=$(getPathAndCheckInstall stat)
+FIND=$(getPathAndCheckInstall find)
+MD5SUM=$(getPathAndCheckInstall md5sum)
+UNIQ=$(getPathAndCheckInstall uniq)
+WC=$(getPathAndCheckInstall wc)
+SORT=$(getPathAndCheckInstall sort)
+PRINTF=$(getPathAndCheckInstall printf)
+NUMFMT=$(getPathAndCheckInstall numfmt)
 
-readonly DB_DIR=$(${MKTEMP} -d --suffix=".dedup")
-readonly DEDUP_INSTRUCTIONS=$(${MKTEMP} --suffix=".deduplicate_instructions.sh")
-readonly TEMPO_LIST_OF_FILES=$(${MKTEMP} --suffix=".deduptempfiles.txt")
-readonly TEMPO_LIST_OF_DIRS=$(${MKTEMP} --suffix=".deduptempdirs.txt")
+DB_DIR=$(${MKTEMP} -d --suffix=".dedup")
+DEDUP_INSTRUCTIONS=$(${MKTEMP} --suffix=".deduplicate_instructions.sh")
+TEMPO_LIST_OF_FILES=$(${MKTEMP} --suffix=".deduptempfiles.txt")
+TEMPO_LIST_OF_DIRS=$(${MKTEMP} --suffix=".deduptempdirs.txt")
 
 #Simple functions:
 #-----------------
@@ -86,7 +88,7 @@ echoWithFixedsize() {
 }
 
 #===  FUNCTION  ================================================================
-#         NAME:  areFilesHardlinked
+#         NAME:  areFilesHardlinkedhttps://www.qwant.com/?q=light+sql+bash&client=opensearch
 #  DESCRIPTION:  Test if two files are hard linked
 #        USAGE:  areFilesHardlinked "File1" "File2"
 #      EXAMPLE:  if areFilesHardlinked "File1" "File2" ; then
@@ -137,10 +139,9 @@ ${MKDIR} -p ${DB_DIR}
 # STEP 1: Build a database of files classified by their sizes
 #===========================================================================
 ${ECHO} "STEP 1: Build a database of files classified by their sizes"
-#for every file su
 CurrentNbFile=0
 ${FIND} "${targetDir}" -type f -size +0 > "${TEMPO_LIST_OF_FILES}"
-TotalNbFile=$(${CAT} ${TEMPO_LIST_OF_FILES} | ${WC} -l)
+TotalNbFile=$(${CAT} "${TEMPO_LIST_OF_FILES}" | ${WC} -l)
 while IFS= read -r file; do
     #Build a database of files classified by their sizes
     ${ECHO} "${file}" >> ${DB_DIR}/$(getSizeOfFile "${file}").txt
@@ -167,27 +168,27 @@ while IFS= read -r dbfile_size; do
         while IFS= read -r file; do
             if (( nbFile == 0 )); then
                 #set the first listed file as referenceFile
-                referenceFile=${file}
+                referenceFile="${file}"
             else
                 #file compared to referenceFile
                 if !(areFilesHardlinked "${referenceFile}" "${file}") ; then
                     if [ "${referenceMD5sum}" == "" ]; then
                         #Md5sum referenceFile if not done before
                         referenceMD5sum=$(${MD5SUM} "${referenceFile}" | ${CUT} -f1 -d " ")
-                        size_dir=${DB_DIR}/$(getSizeOfFile "${referenceFile}")
-                        ${MKDIR} -p ${size_dir}
+                        size_dir="${DB_DIR}/$(getSizeOfFile "${referenceFile}")"
+                        ${MKDIR} -p "${size_dir}"
                         formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${referenceFile}"))
-                        ${ECHO} "${formated_inode}${referenceFile}" >> ${size_dir}/${referenceMD5sum}.txt
+                        ${ECHO} "${formated_inode}${referenceFile}" >> "${size_dir}/${referenceMD5sum}.txt"
                     fi
                     #Md5sum current file
                     fileMD5sum=$(${MD5SUM} "${file}" | ${CUT} -f1 -d " ")
                     formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${file}"))
-                    ${ECHO} "${formated_inode}${file}" >> ${size_dir}/${fileMD5sum}.txt
+                    ${ECHO} "${formated_inode}${file}" >> "${size_dir}/${fileMD5sum}.txt"
                 fi
             fi
             ((nbFile++))
         done < "${dbfile_size}"
-        ${PRINTF} "\r        Number different files : %s/%s" ${TotalNbSizes} ${TotalNbFile}
+        ${PRINTF} "\r        Same-size files : %s/%s" ${TotalNbSizes} ${TotalNbFile}
     fi
     ((TotalNbSizes++))
 done < "${TEMPO_LIST_OF_FILES}"
