@@ -91,7 +91,7 @@ echoWithFixedsize() {
 #         NAME:  areFilesHardlinkedhttps://www.qwant.com/?q=light+sql+bash&client=opensearch
 #  DESCRIPTION:  Test if two files are hard linked
 #        USAGE:  areFilesHardlinked "File1" "File2"
-#      EXAMPLE:  if areFilesHardlinked "File1" "File2" ; then
+#      EXAMPLE:  if (( $(areFilesHardlinked "File1" "File2") )) ; then
 #                   Action si OK
 #                fi
 # PARAMETER  1:  File1 : Fichier 1
@@ -109,10 +109,10 @@ areFilesHardlinked() {
         local inode_file2=$(getInodeOfFile "${2}")
         #Inodes are the same?
         if [[ ${inode_file1} == ${inode_file2} ]] ; then            \
-            return 0
+            echo "0"
         fi
     fi
-    return 1
+    echo "1"
 }
 
 #===========================================================================
@@ -171,7 +171,7 @@ while IFS= read -r dbfile_size; do
                 referenceFile="${file}"
             else
                 #file compared to referenceFile
-                if !(areFilesHardlinked "${referenceFile}" "${file}") ; then
+                if (( !($(areFilesHardlinked "${referenceFile}" "${file})) )); then
                     if [ "${referenceMD5sum}" == "" ]; then
                         #Md5sum referenceFile if not done before
                         referenceMD5sum=$(${MD5SUM} "${referenceFile}" | ${CUT} -f1 -d " ")
