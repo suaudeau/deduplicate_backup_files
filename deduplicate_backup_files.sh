@@ -47,11 +47,13 @@ WC=$(getPathAndCheckInstall wc)
 SORT=$(getPathAndCheckInstall sort)
 PRINTF=$(getPathAndCheckInstall printf)
 NUMFMT=$(getPathAndCheckInstall numfmt)
+GREP=$(getPathAndCheckInstall grep)
 
 DB_DIR=$(${MKTEMP} -d --suffix=".dedup")
 DEDUP_INSTRUCTIONS=$(${MKTEMP} --suffix=".deduplicate_instructions.sh")
 TEMPO_LIST_OF_FILES=$(${MKTEMP} --suffix=".deduptempfiles.txt")
 TEMPO_LIST_OF_DIRS=$(${MKTEMP} --suffix=".deduptempdirs.txt")
+TEMPO_LIST_OF_INODES=$(${MKTEMP} --suffix=".deduptempinodes.txt")
 
 #Simple functions:
 #-----------------
@@ -88,31 +90,30 @@ echoWithFixedsize() {
 }
 
 #===  FUNCTION  ================================================================
-#         NAME:  areFilesHardlinkedhttps://www.qwant.com/?q=light+sql+bash&client=opensearch
-#  DESCRIPTION:  Test if two files are hard linked
-#        USAGE:  areFilesHardlinked "File1" "File2"
-#      EXAMPLE:  if (( $(areFilesHardlinked "File1" "File2") )) ; then
+#         NAME:  areFilesNotHardlinked
+#  DESCRIPTION:  Test if two files are not hard linked
+#        USAGE:  areFilesNotHardlinked "File1" "File2"
+#      EXAMPLE:  if areFilesNotHardlinked "File1" "File2" ; then
 #                   Action si OK
 #                fi
 # PARAMETER  1:  File1 : Fichier 1
 # PARAMETER  2:  File2 : Fichier 2
 #===============================================================================
-areFilesHardlinked() {
+areFilesNotHardlinked() {
     #arguments cannot be empty ==> die
     if [[ -z "${2}" || -z "${1}" ]]; then
         die "FATAL ERROR: Bad number of arguments in function areHardlinked"
     fi
-
     #Are both true files?
     if [[ -f "${1}" && -f  "${2}" ]] ; then
         local inode_file1=$(getInodeOfFile "${1}")
         local inode_file2=$(getInodeOfFile "${2}")
         #Inodes are the same?
         if [[ ${inode_file1} == ${inode_file2} ]] ; then            \
-            echo "0"
+            return 1
         fi
     fi
-    echo "1"
+    return 0
 }
 
 #===========================================================================
@@ -146,8 +147,11 @@ while IFS= read -r file; do
     #Build a database of files classified by their sizes
     ${ECHO} "${file}" >> ${DB_DIR}/$(getSizeOfFile "${file}").txt
     ((CurrentNbFile++))
-    ${PRINTF} "\r        File #: %s/%s" ${CurrentNbFile} ${TotalNbFile}
+    if (( CurrentNbFile % 30 == 0 )); then
+        ${PRINTF} "\r        File #: %s/%s" ${CurrentNbFile} ${TotalNbFile}
+    fi
 done < "${TEMPO_LIST_OF_FILES}"
+${PRINTF} "\r        File #: %s/%s" ${CurrentNbFile} ${TotalNbFile}
 ${ECHO}
 #===========================================================================
 # STEP 2: For each different files with the same size, build a sub-database
@@ -156,22 +160,30 @@ ${ECHO}
 ${ECHO} "STEP 2: Build a sub-database of files classified by their hash"
 ((TotalNbSizes=0))
 #Read each db file for files with the same size
-${FIND} "${DB_DIR}" -type f > "${TEMPO_LIST_OF_FILES}"
-TotalNbFile=$(${CAT} ${TEMPO_LIST_OF_FILES} | ${WC} -l)
+${FIND} "${DB_DIR}" -maxdepth 1 -iname "*.txt" -type f > "${TEMPO_LIST_OF_FILES}"
+#TotalNbFile=$(${CAT} ${TEMPO_LIST_OF_FILES} | ${WC} -l)
 while IFS= read -r dbfile_size; do
     #If file has more than one line
     nbLines=$(${CAT} ${dbfile_size} | ${WC} -l)
     if (( nbLines>1 )); then
+        ${ECHO} "" > ${TEMPO_LIST_OF_INODES}
         ((nbFile=0))
         referenceMD5sum=""
         # For each same size file writen in this DB.
         while IFS= read -r file; do
+            if (( TotalNbSizes % 10 == 0 )); then
+              ${PRINTF} "\r        File #: %s/%s" ${TotalNbSizes} ${TotalNbFile}
+            fi
             if (( nbFile == 0 )); then
                 #set the first listed file as referenceFile
                 referenceFile="${file}"
+                ${ECHO} $(getInodeOfFile "${file}") >> ${TEMPO_LIST_OF_INODES}
             else
                 #file compared to referenceFile
-                if (( !($(areFilesHardlinked "${referenceFile}" "${file}")) )); then
+                inode=$(getInodeOfFile "${file}")
+                #If inode has't been used
+                if [[ $(${CAT} ${TEMPO_LIST_OF_INODES} | ${GREP} $inode) == "" ]]; then
+                #if areFilesNotHardlinked "${referenceFile}" "${file}"; then
                     if [ "${referenceMD5sum}" == "" ]; then
                         #Md5sum referenceFile if not done before
                         referenceMD5sum=$(${MD5SUM} "${referenceFile}" | ${CUT} -f1 -d " ")
@@ -184,14 +196,15 @@ while IFS= read -r dbfile_size; do
                     fileMD5sum=$(${MD5SUM} "${file}" | ${CUT} -f1 -d " ")
                     formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${file}"))
                     ${ECHO} "${formated_inode}${file}" >> "${size_dir}/${fileMD5sum}.txt"
+                    ${ECHO} ${inode} >> ${TEMPO_LIST_OF_INODES}
                 fi
             fi
             ((nbFile++))
+            ((TotalNbSizes++))
         done < "${dbfile_size}"
-        ${PRINTF} "\r        Same-size files : %s/%s" ${TotalNbSizes} ${TotalNbFile}
     fi
-    ((TotalNbSizes++))
 done < "${TEMPO_LIST_OF_FILES}"
+${PRINTF} "\r        File #: %s/%s" ${TotalNbSizes} ${TotalNbFile}
 ${ECHO}
 #===========================================================================
 # STEP 3: For each files with the same MD5SUM, make hard link between them.
@@ -203,7 +216,7 @@ while read dbdir_md5sum; do
     #suppress root dir
     if [[ "${dbdir_md5sum}" != "${DB_DIR}" ]]; then
         #For all md5 files
-        ${FIND} "${dbdir_md5sum}" -type f > "${TEMPO_LIST_OF_FILES}"
+        ${FIND} "${dbdir_md5sum}" -maxdepth 1 -iname "*.txt" -type f >"${TEMPO_LIST_OF_FILES}"
         while read md5file; do
             #Suppress lines with the same inode and then suppress inode info
             ${CAT} ${md5file} | ${SORT} | ${UNIQ} -w 25 | ${CUT} -c 26- > ${md5file}.uniq

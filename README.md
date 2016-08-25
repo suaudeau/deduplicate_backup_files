@@ -29,6 +29,7 @@ Hervé SUAUDEAU, herve.suaudeau (arob.) parisdescartes.fr (CNRS)
 | ------- | ---------- | ----------------------------------------------------- |
 | 1.0     | 22.08.2016 | First commit into Github. Production version used|
 | 1.1     | 24.08.2016 | Correct sparses bugs that can occurs sometimes ("readonly" attribute can misleading content of variables, "exit 1" can exit the shell)|
+| 1.2     | 25.08.2016 | Optimize speed|
 
 ###Licence
     GPL v3
