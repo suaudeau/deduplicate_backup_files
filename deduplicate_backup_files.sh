@@ -229,8 +229,8 @@ while read dbdir_md5sum; do
                     inode=$(getInodeOfFile "${line}")
                     if (( referenceInode != inode )); then
                         #Generate instructions
-                        ${ECHO} rm -f \"${line}\" >> ${DEDUP_INSTRUCTIONS}
-                        ${ECHO} cp -al \"${referenceFile}\" \"${line}\" >> ${DEDUP_INSTRUCTIONS}
+                        ${ECHO} "rm -f \"${line}\"" >> ${DEDUP_INSTRUCTIONS}
+                        ${ECHO} "cp -al \"${referenceFile}\" \"${line}\"" >> ${DEDUP_INSTRUCTIONS}
                         currentSize=$(getSizeOfFile "${referenceFile}")
                         ((TotalSizeSaved=TotalSizeSaved + currentSize))
                         ${PRINTF} "\r        Total saved size : %s" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
