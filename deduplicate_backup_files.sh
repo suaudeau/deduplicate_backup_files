@@ -89,33 +89,6 @@ echoWithFixedsize() {
     ${ECHO} "${to_display:0:${size}}"
 }
 
-#===  FUNCTION  ================================================================
-#         NAME:  areFilesNotHardlinked
-#  DESCRIPTION:  Test if two files are not hard linked
-#        USAGE:  areFilesNotHardlinked "File1" "File2"
-#      EXAMPLE:  if areFilesNotHardlinked "File1" "File2" ; then
-#                   Action si OK
-#                fi
-# PARAMETER  1:  File1 : Fichier 1
-# PARAMETER  2:  File2 : Fichier 2
-#===============================================================================
-areFilesNotHardlinked() {
-    #arguments cannot be empty ==> die
-    if [[ -z "${2}" || -z "${1}" ]]; then
-        die "FATAL ERROR: Bad number of arguments in function areHardlinked"
-    fi
-    #Are both true files?
-    if [[ -f "${1}" && -f  "${2}" ]] ; then
-        local inode_file1=$(getInodeOfFile "${1}")
-        local inode_file2=$(getInodeOfFile "${2}")
-        #Inodes are the same?
-        if [[ ${inode_file1} == ${inode_file2} ]] ; then            \
-            return 1
-        fi
-    fi
-    return 0
-}
-
 #===========================================================================
 # STEP 0: Display warning and get parameters
 #===========================================================================
@@ -253,4 +226,8 @@ ${ECHO}
 ${RM} -rf ${DB_DIR} ${TEMPO_LIST_OF_DIRS} ${TEMPO_LIST_OF_FILES}
 ${ECHO} "----------------------------------------------------------"
 ${PRINTF} "You can launch deduplicate instructions with following command for saving %s\n" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
-${ECHO} . ${DEDUP_INSTRUCTIONS}
+if [[ -e ${DEDUP_INSTRUCTIONS} ]]; then
+  ${ECHO} . ${DEDUP_INSTRUCTIONS}
+else
+  ${ECHO} "No file. Nothing to deduplicate."
+fi
