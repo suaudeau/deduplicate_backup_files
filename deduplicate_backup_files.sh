@@ -180,7 +180,7 @@ while IFS= read -r dbfile_size; do
                 referenceInode=$(getInodeOfFile "${referenceFile}")
             else
                 inode=$(getInodeOfFile "${file}")
-                if [[ referenceInode!=inode ]]; then
+                if (( referenceInode!=inode )); then
                     #file compared to referenceFile
                     if [ "${referenceMD5sum}" == "" ]; then
                         #Md5sum referenceFile if not done before
@@ -224,13 +224,17 @@ while read dbdir_md5sum; do
             while IFS= read -r line; do
                 if (( nbFile == 0 )); then
                     referenceFile="${line}"
+                    referenceInode=$(getInodeOfFile "${referenceFile}")
                 else
-                    #Generate instructions
-                    ${ECHO} rm -f \"${line}\" >> ${DEDUP_INSTRUCTIONS}
-                    ${ECHO} cp -al \"${referenceFile}\" \"${line}\" >> ${DEDUP_INSTRUCTIONS}
-                    currentSize=$(getSizeOfFile "${referenceFile}")
-                    ((TotalSizeSaved=TotalSizeSaved + currentSize))
-                    ${PRINTF} "\r        Total saved size : %s" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
+                    inode=$(getInodeOfFile "${line}")
+                    if (( referenceInode != inode )); then
+                        #Generate instructions
+                        ${ECHO} rm -f \"${line}\" >> ${DEDUP_INSTRUCTIONS}
+                        ${ECHO} cp -al \"${referenceFile}\" \"${line}\" >> ${DEDUP_INSTRUCTIONS}
+                        currentSize=$(getSizeOfFile "${referenceFile}")
+                        ((TotalSizeSaved=TotalSizeSaved + currentSize))
+                        ${PRINTF} "\r        Total saved size : %s" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
+                    fi
                 fi
                 ((nbFile++))
             done < "${md5file}.uniq"
