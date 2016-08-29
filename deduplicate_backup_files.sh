@@ -166,7 +166,6 @@ while IFS= read -r dbfile_size; do
     #If file has more than one line
     nbLines=$(${CAT} ${dbfile_size} | ${WC} -l)
     if (( nbLines>1 )); then
-        #${ECHO} "" > ${TEMPO_LIST_OF_INODES}
         ((nbFile=0))
         referenceMD5sum=""
         # For each same size file writen in this DB.
@@ -177,33 +176,26 @@ while IFS= read -r dbfile_size; do
             if (( nbFile == 0 )); then
                 #set the first listed file as referenceFile
                 referenceFile="${file}"
-                #${ECHO} $(getInodeOfFile "${file}") >> ${TEMPO_LIST_OF_INODES}
             else
                 #file compared to referenceFile
-                inode=$(getInodeOfFile "${file}")
-                #If inode has't been used
-                #if [[ $(${CAT} ${TEMPO_LIST_OF_INODES} | ${GREP} $inode) == "" ]]; then
-                #if areFilesNotHardlinked "${referenceFile}" "${file}"; then
-                    if [ "${referenceMD5sum}" == "" ]; then
-                        #Md5sum referenceFile if not done before
-                        referenceMD5sum=$(${MD5SUM} "${referenceFile}" | ${CUT} -f1 -d " ")
-                        size_dir="${DB_DIR}/$(getSizeOfFile "${referenceFile}")"
-                        ${MKDIR} -p "${size_dir}"
-                        formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${referenceFile}"))
-                        ${ECHO} "${formated_inode}${referenceFile}" >> "${size_dir}/${referenceMD5sum}.txt"
-                    fi
-                    #Md5sum current file
-                    fileMD5sum=$(${MD5SUM} "${file}" | ${CUT} -f1 -d " ")
-                    formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${file}"))
-                    ${ECHO} "${formated_inode}${file}" >> "${size_dir}/${fileMD5sum}.txt"
-                    #${ECHO} ${inode} >> ${TEMPO_LIST_OF_INODES}
-                #else
-
-                #fi
+                if [ "${referenceMD5sum}" == "" ]; then
+                    #Md5sum referenceFile if not done before
+                    referenceMD5sum=$(${MD5SUM} "${referenceFile}" | ${CUT} -f1 -d " ")
+                    size_dir="${DB_DIR}/$(getSizeOfFile "${referenceFile}")"
+                    ${MKDIR} -p "${size_dir}"
+                    formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${referenceFile}"))
+                    ${ECHO} "${formated_inode}${referenceFile}" >> "${size_dir}/${referenceMD5sum}.txt"
+                fi
+                #Md5sum current file
+                fileMD5sum=$(${MD5SUM} "${file}" | ${CUT} -f1 -d " ")
+                formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${file}"))
+                ${ECHO} "${formated_inode}${file}" >> "${size_dir}/${fileMD5sum}.txt"
             fi
             ((nbFile++))
             ((TotalNbSizes++))
         done < "${dbfile_size}"
+    else
+        ((TotalNbSizes++))
     fi
 done < "${TEMPO_LIST_OF_FILES}"
 ${PRINTF} "\r        File #: %s/%s" ${TotalNbSizes} ${TotalNbFile}
