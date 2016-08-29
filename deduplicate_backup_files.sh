@@ -53,7 +53,7 @@ DB_DIR=$(${MKTEMP} -d --suffix=".dedup")
 DEDUP_INSTRUCTIONS=$(${MKTEMP} --suffix=".deduplicate_instructions.sh")
 TEMPO_LIST_OF_FILES=$(${MKTEMP} --suffix=".deduptempfiles.txt")
 TEMPO_LIST_OF_DIRS=$(${MKTEMP} --suffix=".deduptempdirs.txt")
-TEMPO_LIST_OF_INODES=$(${MKTEMP} --suffix=".deduptempinodes.txt")
+#TEMPO_LIST_OF_INODES=$(${MKTEMP} --suffix=".deduptempinodes.txt")
 
 #Simple functions:
 #-----------------
@@ -166,7 +166,7 @@ while IFS= read -r dbfile_size; do
     #If file has more than one line
     nbLines=$(${CAT} ${dbfile_size} | ${WC} -l)
     if (( nbLines>1 )); then
-        ${ECHO} "" > ${TEMPO_LIST_OF_INODES}
+        #${ECHO} "" > ${TEMPO_LIST_OF_INODES}
         ((nbFile=0))
         referenceMD5sum=""
         # For each same size file writen in this DB.
@@ -177,12 +177,12 @@ while IFS= read -r dbfile_size; do
             if (( nbFile == 0 )); then
                 #set the first listed file as referenceFile
                 referenceFile="${file}"
-                ${ECHO} $(getInodeOfFile "${file}") >> ${TEMPO_LIST_OF_INODES}
+                #${ECHO} $(getInodeOfFile "${file}") >> ${TEMPO_LIST_OF_INODES}
             else
                 #file compared to referenceFile
                 inode=$(getInodeOfFile "${file}")
                 #If inode has't been used
-                if [[ $(${CAT} ${TEMPO_LIST_OF_INODES} | ${GREP} $inode) == "" ]]; then
+                #if [[ $(${CAT} ${TEMPO_LIST_OF_INODES} | ${GREP} $inode) == "" ]]; then
                 #if areFilesNotHardlinked "${referenceFile}" "${file}"; then
                     if [ "${referenceMD5sum}" == "" ]; then
                         #Md5sum referenceFile if not done before
@@ -196,8 +196,10 @@ while IFS= read -r dbfile_size; do
                     fileMD5sum=$(${MD5SUM} "${file}" | ${CUT} -f1 -d " ")
                     formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${file}"))
                     ${ECHO} "${formated_inode}${file}" >> "${size_dir}/${fileMD5sum}.txt"
-                    ${ECHO} ${inode} >> ${TEMPO_LIST_OF_INODES}
-                fi
+                    #${ECHO} ${inode} >> ${TEMPO_LIST_OF_INODES}
+                #else
+
+                #fi
             fi
             ((nbFile++))
             ((TotalNbSizes++))
