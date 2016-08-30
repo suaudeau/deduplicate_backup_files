@@ -31,6 +31,7 @@ Hervé SUAUDEAU, herve.suaudeau (arob.) parisdescartes.fr (CNRS)
 | 1.1     | 24.08.2016 | Correct sparses bugs that can occurs sometimes ("readonly" attribute can misleading content of variables, "exit 1" can exit the shell)|
 | 1.2     | 25.08.2016 | Optimize speed|
 | 1.3     | 29.08.2016 | Correct bug that do not optimize files with multple hard links AND copies|
+| 1.4     | 30.08.2016 | Script can manage special char in filenames like "'$\%^{} ...|
 
 ###Licence
     GPL v3

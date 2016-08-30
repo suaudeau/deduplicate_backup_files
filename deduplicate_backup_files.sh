@@ -157,14 +157,18 @@ while IFS= read -r dbfile_size; do
                     #file compared to referenceFile
                     if [ "${referenceMD5sum}" == "" ]; then
                         #Md5sum referenceFile if not done before
-                        referenceMD5sum=$(${MD5SUM} "${referenceFile}" | ${CUT} -f1 -d " ")
+                        referenceMD5sum="$(${MD5SUM} "${referenceFile}" | ${CUT} -f1 -d " ")"
+                        #suppress potential bug of md5sum that can print a heading \ when there is special chars in filenames
+                        referenceMD5sum="${referenceMD5sum/\\/}"
                         size_dir="${DB_DIR}/$(getSizeOfFile "${referenceFile}")"
                         ${MKDIR} -p "${size_dir}"
                         formated_inode=$(echoWithFixedsize 25 ${referenceInode})
                         ${ECHO} "${formated_inode}${referenceFile}" >> "${size_dir}/${referenceMD5sum}.txt"
                     fi
                     #Md5sum current file
-                    fileMD5sum=$(${MD5SUM} "${file}" | ${CUT} -f1 -d " ")
+                    fileMD5sum="$(${MD5SUM} "${file}" | ${CUT} -f1 -d " ")"
+                    #suppress potential bug of md5sum that can print a heading \ when there is special chars in filenames
+                    fileMD5sum="${fileMD5sum/\\/}"
                     formated_inode=$(echoWithFixedsize 25 $(getInodeOfFile "${file}"))
                     ${ECHO} "${formated_inode}${file}" >> "${size_dir}/${fileMD5sum}.txt"
                 fi
@@ -182,6 +186,8 @@ ${ECHO}
 # STEP 3: For each files with the same MD5SUM, make hard link between them.
 #===========================================================================
 ${ECHO} "STEP 3: Generate script"
+#Add empty line in script
+#${ECHO} "echo" >> ${DEDUP_INSTRUCTIONS}
 ((TotalSizeSaved=0))
 ${FIND} "${DB_DIR}" -type d > "${TEMPO_LIST_OF_DIRS}"
 while read dbdir_md5sum; do
@@ -201,12 +207,14 @@ while read dbdir_md5sum; do
                 else
                     inode=$(getInodeOfFile "${line}")
                     if (( referenceInode != inode )); then
-                        #Generate instructions
-                        ${ECHO} "rm -f \"${line}\"" >> ${DEDUP_INSTRUCTIONS}
-                        ${ECHO} "cp -al \"${referenceFile}\" \"${line}\"" >> ${DEDUP_INSTRUCTIONS}
+                        #Generate instructions: Use printf "%q" for escaping bash characters
+                        ${PRINTF} "rm -f %q\n" "${line}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "cp -al %q %q\n" "${referenceFile}" "${line}" >> ${DEDUP_INSTRUCTIONS}
                         currentSize=$(getSizeOfFile "${referenceFile}")
                         ((TotalSizeSaved=TotalSizeSaved + currentSize))
-                        ${PRINTF} "\r        Total saved size : %s" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
+                        TotalSizeSaved_Pr=$(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
+                        ${PRINTF} "\r        Total saved size : %s" ${TotalSizeSaved_Pr}
+                        ${PRINTF} "printf \"\\\r        Total saved size : %s\"\n\n" ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
                     fi
                 fi
                 ((nbFile++))
@@ -222,7 +230,6 @@ ${ECHO}
 ${ECHO}
 #${ECHO} "Here are the instructions for deduplicate:"
 #${ECHO} "----------------------------------------------------------"
-#cat ${DEDUP_INSTRUCTIONS}
 ${RM} -rf ${DB_DIR} ${TEMPO_LIST_OF_DIRS} ${TEMPO_LIST_OF_FILES}
 ${ECHO} "----------------------------------------------------------"
 ${PRINTF} "You can launch deduplicate instructions with following command for saving %s\n" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
