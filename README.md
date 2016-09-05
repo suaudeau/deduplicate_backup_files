@@ -32,6 +32,7 @@ Hervé SUAUDEAU, herve.suaudeau (arob.) parisdescartes.fr (CNRS)
 | 1.2     | 25.08.2016 | Optimize speed|
 | 1.3     | 29.08.2016 | Correct bug that do not optimize files with multple hard links AND copies|
 | 1.4     | 30.08.2016 | Script can manage special char in filenames like "'$\%^{} ...|
+| 1.5     |  5.09.2016 | Add time tracking and check that file replacement exist before rm |
 
 ###Licence
     GPL v3

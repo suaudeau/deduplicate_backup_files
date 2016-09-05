@@ -48,6 +48,9 @@ SORT=$(getPathAndCheckInstall sort)
 PRINTF=$(getPathAndCheckInstall printf)
 NUMFMT=$(getPathAndCheckInstall numfmt)
 GREP=$(getPathAndCheckInstall grep)
+PYTHON=$(getPathAndCheckInstall python)
+AWK=$(getPathAndCheckInstall awk)
+BC=$(getPathAndCheckInstall bc)
 
 DB_DIR=$(${MKTEMP} -d --suffix=".dedup")
 DEDUP_INSTRUCTIONS=$(${MKTEMP} --suffix=".deduplicate_instructions.sh")
@@ -64,6 +67,21 @@ getSizeOfFile() {
     ${ECHO} $(${STAT} -c "%s" -- "${1}")
 }
 
+now() {
+  ${ECHO} "import time; print time.time()" 2>/dev/null | ${PYTHON}
+}
+
+displaytime() {
+  local T=$1
+  local D=$(${ECHO} $T/60/60/24|${BC})
+  local H=$(${ECHO} $T/60/60%24|${BC})
+  local M=$(${ECHO} $T/60%60|${BC})
+  local S=$(${ECHO} $T%60|${BC})
+  [[ $D > 0 ]] && ${PRINTF} '%dj ' $D
+  [[ $H > 0 ]] && ${PRINTF} '%dh ' $H
+  [[ $M > 0 ]] && ${PRINTF} '%dm ' $M
+  ${PRINTF} '%ss\n' $S
+}
 #===  FUNCTION  ================================================================
 #         NAME:  echoWithFixedsize
 #  DESCRIPTION:  Display a text with a fixed size (add spaces if necessary,
@@ -117,15 +135,19 @@ CurrentNbFile=0
 ${FIND} "${targetDir}" -type f -size +0 > "${TEMPO_LIST_OF_FILES}"
 ${ECHO} "STEP 1: Build a database of files classified by their sizes"
 TotalNbFile=$(${CAT} "${TEMPO_LIST_OF_FILES}" | ${WC} -l)
+begin_time=$(now)
 while IFS= read -r file; do
     #Build a database of files classified by their sizes
     ${ECHO} "${file}" >> ${DB_DIR}/$(getSizeOfFile "${file}").txt
     ((CurrentNbFile++))
-    if (( CurrentNbFile % 30 == 0 )); then
-        ${PRINTF} "\r        File #: %s/%s" ${CurrentNbFile} ${TotalNbFile}
+    if (( CurrentNbFile % 200 == 0 )); then
+        elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
+        estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${CurrentNbFile} + 1) }")
+        ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${CurrentNbFile} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
     fi
 done < "${TEMPO_LIST_OF_FILES}"
-${PRINTF} "\r        File #: %s/%s" ${CurrentNbFile} ${TotalNbFile}
+elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
+${PRINTF} "\r        File #: %s/%s    Time: %s                                                                \n" ${CurrentNbFile} ${TotalNbFile} "$(displaytime ${elapsed_time})"
 ${ECHO}
 #===========================================================================
 # STEP 2: For each different files with the same size, build a sub-database
@@ -136,6 +158,7 @@ ${ECHO} "STEP 2: Build a sub-database of files classified by their hash"
 #Read each db file for files with the same size
 ${FIND} "${DB_DIR}" -maxdepth 1 -iname "*.txt" -type f > "${TEMPO_LIST_OF_FILES}"
 #TotalNbFile=$(${CAT} ${TEMPO_LIST_OF_FILES} | ${WC} -l)
+begin_time=$(now)
 while IFS= read -r dbfile_size; do
     #If file has more than one line
     nbLines=$(${CAT} ${dbfile_size} | ${WC} -l)
@@ -144,8 +167,10 @@ while IFS= read -r dbfile_size; do
         referenceMD5sum=""
         # For each same size file writen in this DB.
         while IFS= read -r file; do
-            if (( TotalNbSizes % 10 == 0 )); then
-              ${PRINTF} "\r        File #: %s/%s" ${TotalNbSizes} ${TotalNbFile}
+            if (( TotalNbSizes % 20 == 0 )); then
+              elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
+              estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${CurrentNbFile} + 1) }")
+              ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${TotalNbSizes} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
             fi
             if (( nbFile == 0 )); then
                 #set the first listed file as referenceFile
@@ -181,6 +206,8 @@ while IFS= read -r dbfile_size; do
     fi
 done < "${TEMPO_LIST_OF_FILES}"
 ${PRINTF} "\r        File #: %s/%s" ${TotalNbSizes} ${TotalNbFile}
+elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
+${PRINTF} "\r        File #: %s/%s   Time: %s                                           \n" ${TotalNbSizes} ${TotalNbFile} "$(displaytime ${elapsed_time})"
 ${ECHO}
 #===========================================================================
 # STEP 3: For each files with the same MD5SUM, make hard link between them.
@@ -208,13 +235,17 @@ while read dbdir_md5sum; do
                     inode=$(getInodeOfFile "${line}")
                     if (( referenceInode != inode )); then
                         #Generate instructions: Use printf "%q" for escaping bash characters
-                        ${PRINTF} "rm -f %q\n" "${line}" >> ${DEDUP_INSTRUCTIONS}
-                        ${PRINTF} "cp -al %q %q\n" "${referenceFile}" "${line}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "if [ -f %q ];then\n" "${referenceFile}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "  rm -f %q\n" "${line}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "  cp -al %q %q\n" "${referenceFile}" "${line}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "fi\n" >> ${DEDUP_INSTRUCTIONS}
                         currentSize=$(getSizeOfFile "${referenceFile}")
                         ((TotalSizeSaved=TotalSizeSaved + currentSize))
                         TotalSizeSaved_Pr=$(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
-                        ${PRINTF} "\r        Total saved size : %s" ${TotalSizeSaved_Pr}
-                        ${PRINTF} "printf \"\\\r        Total saved size : %s\"\n\n" ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+                        if (( nbFile % 20 == 0 )); then
+                          ${PRINTF} "\r        File # %s     Total saved size : %s" ${nbFile} ${TotalSizeSaved_Pr}
+                          ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s\"\n\n" ${nbFile} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+                        fi
                     fi
                 fi
                 ((nbFile++))
@@ -222,6 +253,8 @@ while read dbdir_md5sum; do
         done < "${TEMPO_LIST_OF_FILES}"
     fi
 done < "${TEMPO_LIST_OF_DIRS}"
+${PRINTF} "\r        File # %s     Total saved size : %s           \n" ${nbFile} ${TotalSizeSaved_Pr}
+${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s\"\n\n" ${nbFile} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
 
 ${ECHO}
 #===========================================================================
