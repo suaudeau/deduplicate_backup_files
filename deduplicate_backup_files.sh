@@ -247,7 +247,10 @@ while read dbdir_md5sum; do
                         if (( nbFile % 20 == 0 )); then
                           ${PRINTF} "\r        File # %s     Total saved size : %s" ${nbFile} ${TotalSizeSaved_Pr}
                           ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s\"\n\n" ${nbFile} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+                        else
+                          ${ECHO} >> ${DEDUP_INSTRUCTIONS}
                         fi
+                        ${ECHO} >> ${DEDUP_INSTRUCTIONS}
                     fi
                 fi
                 ((nbFile++))
