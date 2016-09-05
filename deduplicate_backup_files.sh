@@ -141,6 +141,7 @@ while IFS= read -r file; do
     ${ECHO} "${file}" >> ${DB_DIR}/$(getSizeOfFile "${file}").txt
     ((CurrentNbFile++))
     if (( CurrentNbFile % 200 == 0 )); then
+        #every 200 files print an advancement status
         elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
         estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${CurrentNbFile} + 1) }")
         ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${CurrentNbFile} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
@@ -168,6 +169,7 @@ while IFS= read -r dbfile_size; do
         # For each same size file writen in this DB.
         while IFS= read -r file; do
             if (( TotalNbSizes % 20 == 0 )); then
+              #every 20 files print an advancement status
               elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
               estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${CurrentNbFile} + 1) }")
               ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${TotalNbSizes} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
