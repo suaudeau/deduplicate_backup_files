@@ -171,7 +171,7 @@ while IFS= read -r dbfile_size; do
             if (( TotalNbSizes % 20 == 0 )); then
               #every 20 files print an advancement status
               elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
-              estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${CurrentNbFile} + 1) }")
+              estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${TotalNbSizes} + 1) }")
               ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${TotalNbSizes} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
             fi
             if (( nbFile == 0 )); then
@@ -237,7 +237,7 @@ while read dbdir_md5sum; do
                     inode=$(getInodeOfFile "${line}")
                     if (( referenceInode != inode )); then
                         #Generate instructions: Use printf "%q" for escaping bash characters
-                        ${PRINTF} "if [ -f %q ];then\n" "${referenceFile}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "if [[ -f %q ]]; then\n" "${referenceFile}" >> ${DEDUP_INSTRUCTIONS}
                         ${PRINTF} "  rm -f %q\n" "${line}" >> ${DEDUP_INSTRUCTIONS}
                         ${PRINTF} "  cp -al %q %q\n" "${referenceFile}" "${line}" >> ${DEDUP_INSTRUCTIONS}
                         ${PRINTF} "fi\n" >> ${DEDUP_INSTRUCTIONS}
