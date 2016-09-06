@@ -249,7 +249,7 @@ while read dbdir_md5sum; do
                         ((TotalSizeSaved=TotalSizeSaved + currentSize))
                         TotalSizeSaved_Pr=$(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
                         ((TotalNbFileDeduplicated++))
-                        if (( nbFile % 20 == 0 )); then
+                        if (( TotalNbFileDeduplicated % 20 == 0 )); then
                           ${PRINTF} "\r        File # %s     Total saved size : %s" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
                           ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s\"\n\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
                         else
