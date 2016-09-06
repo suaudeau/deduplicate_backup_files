@@ -218,6 +218,8 @@ ${ECHO} "STEP 3: Generate script"
 #Add empty line in script
 #${ECHO} "echo" >> ${DEDUP_INSTRUCTIONS}
 ((TotalSizeSaved=0))
+TotalSizeSaved_Pr="0,0B"
+((TotalNbFileDeduplicated=0))
 ${FIND} "${DB_DIR}" -type d > "${TEMPO_LIST_OF_DIRS}"
 while read dbdir_md5sum; do
     #suppress root dir
@@ -244,9 +246,10 @@ while read dbdir_md5sum; do
                         currentSize=$(getSizeOfFile "${referenceFile}")
                         ((TotalSizeSaved=TotalSizeSaved + currentSize))
                         TotalSizeSaved_Pr=$(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
+                        ((TotalNbFileDeduplicated++))
                         if (( nbFile % 20 == 0 )); then
-                          ${PRINTF} "\r        File # %s     Total saved size : %s" ${nbFile} ${TotalSizeSaved_Pr}
-                          ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s\"\n\n" ${nbFile} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+                          ${PRINTF} "\r        File # %s     Total saved size : %s" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
+                          ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s\"\n\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
                         else
                           ${ECHO} >> ${DEDUP_INSTRUCTIONS}
                         fi
@@ -258,9 +261,9 @@ while read dbdir_md5sum; do
         done < "${TEMPO_LIST_OF_FILES}"
     fi
 done < "${TEMPO_LIST_OF_DIRS}"
-${PRINTF} "\r        File # %s     Total saved size : %s           \n" ${nbFile} ${TotalSizeSaved_Pr}
+${PRINTF} "\r        File # %s     Total saved size : %s           \n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
 if (( TotalSizeSaved>0 )); then
-  ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s \\\n \"\n" ${nbFile} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+  ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s \\\n \"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
 fi
 
 ${ECHO}
