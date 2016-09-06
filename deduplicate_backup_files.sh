@@ -110,16 +110,18 @@ echoWithFixedsize() {
 #===========================================================================
 # STEP 0: Display warning and get parameters
 #===========================================================================
-${ECHO} "==========================================================================="
-${ECHO} "WARNING: This program will generate a script to  hard links between files "
-${ECHO} "         that are identical in order to save storage in archived directories."
+${ECHO} "             Deduplicate backup files by Hervé Suaudeau (GPL v3)"
+${ECHO} "=================================================================================="
+${ECHO} "WARNING: This program will generate a script to do hard links between identical"
+${ECHO} "         files in order to save storage in archived directories."
 ${ECHO} "         1) Please use only in backup dir where files will NEVER BE MODIFIED!!!"
 ${ECHO} "         2) This script may also loose rights and owners of deduplicated files."
-${ECHO} "==========================================================================="
+${ECHO} "=================================================================================="
 
 #arguments cannot be empty ==> die
 if [[ -z "${1}" ]]; then
-    die "FATAL ERROR: Bad number of arguments in main"
+    ${ECHO} "ERROR: Bad number of arguments"
+    die "USAGE: deduplicate_backup_files.sh Directory_to_deduplicate"
 fi
 targetDir=${1}
 
@@ -270,7 +272,7 @@ fi
 # STEP 4: Display instructions
 #===========================================================================
 ${RM} -rf ${DB_DIR} ${TEMPO_LIST_OF_DIRS} ${TEMPO_LIST_OF_FILES}
-${ECHO} "---------------------------------------------------------------------------"
+${ECHO} "----------------------------------------------------------------------------------"
 ${PRINTF} "You can launch deduplicate instructions with following command for saving %s\n" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
 if [[ -e ${DEDUP_INSTRUCTIONS} ]]; then
   ${ECHO} . ${DEDUP_INSTRUCTIONS}
