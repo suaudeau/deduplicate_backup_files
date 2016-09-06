@@ -266,15 +266,11 @@ if (( TotalSizeSaved>0 )); then
   ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s \\\n \"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
 fi
 
-${ECHO}
 #===========================================================================
 # STEP 4: Display instructions
 #===========================================================================
-${ECHO}
-#${ECHO} "Here are the instructions for deduplicate:"
-#${ECHO} "----------------------------------------------------------"
 ${RM} -rf ${DB_DIR} ${TEMPO_LIST_OF_DIRS} ${TEMPO_LIST_OF_FILES}
-${ECHO} "----------------------------------------------------------"
+${ECHO} "---------------------------------------------------------------------------"
 ${PRINTF} "You can launch deduplicate instructions with following command for saving %s\n" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
 if [[ -e ${DEDUP_INSTRUCTIONS} ]]; then
   ${ECHO} . ${DEDUP_INSTRUCTIONS}
