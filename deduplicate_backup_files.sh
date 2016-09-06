@@ -259,7 +259,9 @@ while read dbdir_md5sum; do
     fi
 done < "${TEMPO_LIST_OF_DIRS}"
 ${PRINTF} "\r        File # %s     Total saved size : %s           \n" ${nbFile} ${TotalSizeSaved_Pr}
-${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s\"\n\n" ${nbFile} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+if (( TotalSizeSaved>0 )); then
+  ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s \\\n \"\n" ${nbFile} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+fi
 
 ${ECHO}
 #===========================================================================
