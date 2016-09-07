@@ -120,8 +120,8 @@ ${ECHO} "=======================================================================
 
 #arguments cannot be empty ==> die
 if [[ -z "${1}" ]]; then
-    ${ECHO} "ERROR: Bad number of arguments"
-    die "USAGE: deduplicate_backup_files.sh Directory_to_deduplicate"
+    ${ECHO} "USAGE: deduplicate_backup_files.sh Directory_to_deduplicate"
+    die "ERROR: Bad number of arguments"
 fi
 targetDir=${1}
 
@@ -250,8 +250,8 @@ while read dbdir_md5sum; do
                         TotalSizeSaved_Pr=$(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
                         ((TotalNbFileDeduplicated++))
                         if (( TotalNbFileDeduplicated % 20 == 0 )); then
-                          ${PRINTF} "\r        File # %s     Total saved size : %s" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
-                          ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s\"\n\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+                          ${PRINTF} "\r        Files deduplicated : %s     Total saved size : %s" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
+                          ${PRINTF} "printf \"\\\r        Files deduplicated : %s     Total saved size : %s\"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
                         else
                           ${ECHO} >> ${DEDUP_INSTRUCTIONS}
                         fi
@@ -265,7 +265,7 @@ while read dbdir_md5sum; do
 done < "${TEMPO_LIST_OF_DIRS}"
 ${PRINTF} "\r        File # %s     Total saved size : %s           \n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
 if (( TotalSizeSaved>0 )); then
-  ${PRINTF} "printf \"\\\r        File # %s     Total saved size : %s \\\n \"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+  ${PRINTF} "printf \"\\\r        Files deduplicated : %s     Total saved size : %s \\\n \"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
 fi
 
 #===========================================================================
