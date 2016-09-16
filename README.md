@@ -1,40 +1,40 @@
 deduplicate backup files
 ========================
 
-###Description:
+### Description:
 Save space in backups : Convert redondent files to hard links
 
 WARNING: This program will generate a script to  hard links between files that are identical in order to save storage in archived directories.
 1) Please use only in backup dir where files will NEVER BE MODIFIED!!!
 2) This script may also loose rights and owners of deduplicated files.
 
-###Configuration:
+### Configuration:
 none
 
-###Options:
+### Options:
 | Syntax                             | Meaning|
 | ---------------------------------- | ----------------------------------------------------- |
 | **-s**, **--silent**, **--daemon** | Do not print anything and lauch deduplicate script after analysis.|
 | **-f**, **--fast**                 | Do a fast analysis (ignore files equal or less that 10k)|
 | **-m** *NUM*, **--min_size** *NUM* | Ignore files equal or less that *NUM* bytes.|
 
-###Examples:
+### Examples:
 ```deduplicate_backup_files.sh dir/subdir/backup_to_deduplicate
 deduplicate_backup_files.sh --min_size 1024 dir/subdir/backup_to_deduplicate_bigger_files
 deduplicate_backup_files.sh --silent dir/subdir/backup_to_deduplicate_automatically
 ```
 
-###Requirement:  
+### Requirement:  
 none
 
-###Bugs:
+### Bugs:
 
-###Notes:  
+### Notes:  
 
-###Author:  
+### Author:  
 Hervé SUAUDEAU, herve.suaudeau (arob.) parisdescartes.fr (CNRS)
 
-###Revisions:
+### Revisions:
 | Version |    Date    | Comments                                              |
 | ------- | ---------- | ----------------------------------------------------- |
 | 1.0     | 22.08.2016 | First commit into Github. Production version used|
@@ -45,5 +45,5 @@ Hervé SUAUDEAU, herve.suaudeau (arob.) parisdescartes.fr (CNRS)
 | 1.5     |  5.09.2016 | Add time tracking and check that file replacement exist before rm |
 | 1.6     | 16.09.2016 | Add options -s, -f, -m |
 
-###Licence
+### Licence
     GPL v3
