@@ -120,8 +120,8 @@ usage() {
     ${ECHO} " -s, --silent, --daemon   Do not print anything and lauch deduplicate script"
     ${ECHO} "                          after analysis."
     ${ECHO} " -f, --fast               Do a fast analysis (ignore files equal or"
-    ${ECHO} "                          less that 10k)"
-    ${ECHO} " -m NUM, --min_size NUM   Ignore files equal or less that NUM bytes."
+    ${ECHO} "                          less than 10k)"
+    ${ECHO} " -m NUM, --min_size NUM   Ignore files equal or less than NUM bytes."
     ${ECHO}
     ${ECHO} "Examples:"
     ${ECHO} "         $0 dir/subdir/backup_todeduplicate"
