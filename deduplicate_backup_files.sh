@@ -107,23 +107,86 @@ echoWithFixedsize() {
     ${ECHO} "${to_display:0:${size}}"
 }
 
+#===  FUNCTION  ================================================================
+#         NAME:  usage
+#  DESCRIPTION:  Display syntax to use the program
+#===============================================================================
+usage() {
+    ${ECHO} "Deduplicate backup files by Hervé Suaudeau (GPL v3)"
+    ${ECHO}
+    ${ECHO} "Usage: $0 [OPTION] DIRECTORY_TO_DEDUPLICATE"
+    ${ECHO}
+    ${ECHO} "Options:"
+    ${ECHO} " -s, --silent, --daemon   Do not print anything and lauch deduplicate script"
+    ${ECHO} "                          after analysis."
+    ${ECHO} " -f, --fast               Do a fast analysis (ignore files equal or"
+    ${ECHO} "                          less that 10k)"
+    ${ECHO} " -m NUM, --min_size NUM   Ignore files equal or less that NUM bytes."
+    ${ECHO}
+    ${ECHO} "Examples:"
+    ${ECHO} "         $0 dir/subdir/backup_todeduplicate"
+    ${ECHO} "         $0 --min_size 1024 dir/subdir/backup_todeduplicate_bigger_files"
+    ${ECHO} "         $0 --silent dir/subdir/backup_todeduplicate_automatically"
+}
+
+echo_if_not_silent() {
+  if [[ "${SILENT}" = false ]] ; then
+    ${ECHO} "$*"
+  fi
+}
 #===========================================================================
 # STEP 0: Display warning and get parameters
 #===========================================================================
-${ECHO} "             Deduplicate backup files by Hervé Suaudeau (GPL v3)"
-${ECHO} "=================================================================================="
-${ECHO} "WARNING: This program will generate a script to do hard links between identical"
-${ECHO} "         files in order to save storage in archived directories."
-${ECHO} "         1) Please use only in backup dir where files will NEVER BE MODIFIED!!!"
-${ECHO} "         2) This script may also loose rights and owners of deduplicated files."
-${ECHO} "=================================================================================="
+SILENT=false
+MIN_SIZE_OF_FILES="+0"
+
+while [[ $# -gt 1 ]]
+do
+key="${1}"
+case ${key} in
+    -s|--silent|--daemon)
+    SILENT=true
+    ;;
+
+    -f|--fast)
+    MIN_SIZE_OF_FILES="+10240c"
+    ;;
+
+    -m|--min_size)
+    if [[ "$2" -eq "$2" ]] 2>/dev/null
+    then
+      #this is an integer
+      if [[ "$2"  -gt 0 ]]; then
+        #it is positive
+        MIN_SIZE_OF_FILES="+${2}c"
+      fi
+    fi
+    shift # past argument
+    ;;
+
+    *)
+      # unknown option
+      usage
+      die "FATAL ERROR: Bad arguments."
+    ;;
+esac
+shift # past argument or value
+done
 
 #arguments cannot be empty ==> die
 if [[ -z "${1}" ]]; then
-    ${ECHO} "USAGE: deduplicate_backup_files.sh Directory_to_deduplicate"
+    usage
     die "ERROR: Bad number of arguments"
 fi
 targetDir=${1}
+
+echo_if_not_silent "             Deduplicate backup files by Hervé Suaudeau (GPL v3)"
+echo_if_not_silent "=================================================================================="
+echo_if_not_silent "WARNING: This program will generate a script to do hard links between identical"
+echo_if_not_silent "         files in order to save storage in archived directories."
+echo_if_not_silent "         1) Please use only in backup dir where files will NEVER BE MODIFIED!!!"
+echo_if_not_silent "         2) This script may also loose rights and owners of deduplicated files."
+echo_if_not_silent "=================================================================================="
 
 #clean temp files
 ${RM} -rf ${DB_DIR} ${DEDUP_INSTRUCTIONS}
@@ -132,10 +195,11 @@ ${MKDIR} -p ${DB_DIR}
 #===========================================================================
 # STEP 1: Build a database of files classified by their sizes
 #===========================================================================
-${ECHO} "Building files list..."
+echo_if_not_silent "Building files list..."
 CurrentNbFile=0
-${FIND} "${targetDir}" -type f -size +0 > "${TEMPO_LIST_OF_FILES}"
-${ECHO} "STEP 1: Build a database of files classified by their sizes"
+${FIND} "${targetDir}" -type f -size ${MIN_SIZE_OF_FILES} > "${TEMPO_LIST_OF_FILES}"
+cat  ${TEMPO_LIST_OF_FILES}
+echo_if_not_silent "STEP 1: Build a database of files classified by their sizes"
 TotalNbFile=$(${CAT} "${TEMPO_LIST_OF_FILES}" | ${WC} -l)
 begin_time=$(now)
 while IFS= read -r file; do
@@ -144,19 +208,23 @@ while IFS= read -r file; do
     ((CurrentNbFile++))
     if (( CurrentNbFile % 200 == 0 )); then
         #every 200 files print an advancement status
-        elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
-        estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${CurrentNbFile} + 1) }")
-        ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${CurrentNbFile} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
+        if [[ "${SILENT}" = false ]] ; then
+          elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
+          estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${CurrentNbFile} + 1) }")
+          ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${CurrentNbFile} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
+        fi
     fi
 done < "${TEMPO_LIST_OF_FILES}"
-elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
-${PRINTF} "\r        File #: %s/%s    Time: %s                                                                \n" ${CurrentNbFile} ${TotalNbFile} "$(displaytime ${elapsed_time})"
-${ECHO}
+if [[ "${SILENT}" = false ]] ; then
+  elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
+  ${PRINTF} "\r        File #: %s/%s    Time: %s                                                                \n" ${CurrentNbFile} ${TotalNbFile} "$(displaytime ${elapsed_time})"
+  ${ECHO}
+fi
 #===========================================================================
 # STEP 2: For each different files with the same size, build a sub-database
 #         of files classified by their MD5SUM
 #===========================================================================
-${ECHO} "STEP 2: Build a sub-database of files classified by their hash"
+echo_if_not_silent "STEP 2: Build a sub-database of files classified by their hash"
 ((TotalNbSizes=0))
 #Read each db file for files with the same size
 ${FIND} "${DB_DIR}" -maxdepth 1 -iname "*.txt" -type f > "${TEMPO_LIST_OF_FILES}"
@@ -174,7 +242,9 @@ while IFS= read -r dbfile_size; do
               #every 20 files print an advancement status
               elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
               estimated_time=$(${AWK} "BEGIN {print (${elapsed_time} * ${TotalNbFile})/(${TotalNbSizes} + 1) }")
-              ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${TotalNbSizes} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
+              if [[ "${SILENT}" = false ]] ; then
+                ${PRINTF} "\r        File #: %s/%s   Time: %s / %s        " ${TotalNbSizes} ${TotalNbFile} "$(displaytime ${elapsed_time})" "$(displaytime ${estimated_time})"
+              fi
             fi
             if (( nbFile == 0 )); then
                 #set the first listed file as referenceFile
@@ -209,14 +279,16 @@ while IFS= read -r dbfile_size; do
         ((TotalNbSizes++))
     fi
 done < "${TEMPO_LIST_OF_FILES}"
-${PRINTF} "\r        File #: %s/%s" ${TotalNbSizes} ${TotalNbFile}
-elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
-${PRINTF} "\r        File #: %s/%s   Time: %s                                           \n" ${TotalNbSizes} ${TotalNbFile} "$(displaytime ${elapsed_time})"
-${ECHO}
+if [[ "${SILENT}" = false ]] ; then
+  ${PRINTF} "\r        File #: %s/%s" ${TotalNbSizes} ${TotalNbFile}
+  elapsed_time=$(${AWK} "BEGIN {print $(now) - ${begin_time}}")
+  ${PRINTF} "\r        File #: %s/%s   Time: %s                                           \n" ${TotalNbSizes} ${TotalNbFile} "$(displaytime ${elapsed_time})"
+  echo_if_not_silent
+fi
 #===========================================================================
 # STEP 3: For each files with the same MD5SUM, make hard link between them.
 #===========================================================================
-${ECHO} "STEP 3: Generate script"
+echo_if_not_silent "STEP 3: Generate script"
 #Add empty line in script
 #${ECHO} "echo" >> ${DEDUP_INSTRUCTIONS}
 ((TotalSizeSaved=0))
@@ -250,8 +322,10 @@ while read dbdir_md5sum; do
                         TotalSizeSaved_Pr=$(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
                         ((TotalNbFileDeduplicated++))
                         if (( TotalNbFileDeduplicated % 20 == 0 )); then
-                          ${PRINTF} "\r        Files deduplicated : %s     Total saved size : %s" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
-                          ${PRINTF} "printf \"\\\r        Files deduplicated : %s     Total saved size : %s\"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+                          if [[ "${SILENT}" = false ]] ; then
+                            ${PRINTF} "\r        Files deduplicated : %s     Total saved size : %s" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
+                            ${PRINTF} "printf \"\\\r        Files deduplicated : %s     Total saved size : %s\"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+                          fi
                         else
                           ${ECHO} >> ${DEDUP_INSTRUCTIONS}
                         fi
@@ -263,19 +337,28 @@ while read dbdir_md5sum; do
         done < "${TEMPO_LIST_OF_FILES}"
     fi
 done < "${TEMPO_LIST_OF_DIRS}"
-${PRINTF} "\r        File # %s     Total saved size : %s           \n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
-if (( TotalSizeSaved>0 )); then
-  ${PRINTF} "printf \"\\\r        Files deduplicated : %s     Total saved size : %s \\\n \"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+if [[ "${SILENT}" = false ]] ; then
+  ${PRINTF} "\r        File # %s     Total saved size : %s           \n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
+  if (( TotalSizeSaved>0 )); then
+    ${PRINTF} "printf \"\\\r        Files deduplicated : %s     Total saved size : %s \\\n \"\n" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr} >> ${DEDUP_INSTRUCTIONS}
+  fi
 fi
 
 #===========================================================================
 # STEP 4: Display instructions
 #===========================================================================
 ${RM} -rf ${DB_DIR} ${TEMPO_LIST_OF_DIRS} ${TEMPO_LIST_OF_FILES}
-${ECHO} "----------------------------------------------------------------------------------"
-${PRINTF} "You can launch deduplicate instructions with following command for saving %s\n" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
+echo_if_not_silent "----------------------------------------------------------------------------------"
+if [[ "${SILENT}" = false ]] ; then
+  ${PRINTF} "You can launch deduplicate instructions with following command for saving %s\n" $(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
+fi
 if [[ -e ${DEDUP_INSTRUCTIONS} ]]; then
-  ${ECHO} . ${DEDUP_INSTRUCTIONS}
+  if [[ "${SILENT}" = false ]] ; then
+    ${ECHO} . ${DEDUP_INSTRUCTIONS}
+  else
+    #Silent mode=>Lauch the script
+    . ${DEDUP_INSTRUCTIONS}
+  fi
 else
-  ${ECHO} "No file. Nothing to deduplicate."
+  echo_if_not_silent "No file. Nothing to deduplicate."
 fi

@@ -11,8 +11,18 @@ WARNING: This program will generate a script to  hard links between files that a
 ###Configuration:
 none
 
-###Options:  
-none
+###Options:
+| Syntax                             | Meaning|
+| ---------------------------------- | ----------------------------------------------------- |
+| **-s**, **--silent**, **--daemon** | Do not print anything and lauch deduplicate script after analysis.|
+| **-f**, **--fast**                 | Do a fast analysis (ignore files equal or less that 10k)|
+| **-m** *NUM*, **--min_size** *NUM* | Ignore files equal or less that *NUM* bytes.|
+
+###Examples:
+```deduplicate_backup_files.sh dir/subdir/backup_to_deduplicate
+deduplicate_backup_files.sh --min_size 1024 dir/subdir/backup_to_deduplicate_bigger_files
+deduplicate_backup_files.sh --silent dir/subdir/backup_to_deduplicate_automatically
+```
 
 ###Requirement:  
 none
@@ -33,6 +43,7 @@ Hervé SUAUDEAU, herve.suaudeau (arob.) parisdescartes.fr (CNRS)
 | 1.3     | 29.08.2016 | Correct bug that do not optimize files with multple hard links AND copies|
 | 1.4     | 30.08.2016 | Script can manage special char in filenames like "'$\%^{} ...|
 | 1.5     |  5.09.2016 | Add time tracking and check that file replacement exist before rm |
+| 1.6     | 16.09.2016 | Add options -s, -f, -m |
 
 ###Licence
     GPL v3
