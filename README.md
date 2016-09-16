@@ -19,10 +19,9 @@ none
 | **-m** *NUM*, **--min_size** *NUM* | Ignore files equal or less that *NUM* bytes.|
 
 ### Examples:
-```deduplicate_backup_files.sh dir/subdir/backup_to_deduplicate
-deduplicate_backup_files.sh --min_size 1024 dir/subdir/backup_to_deduplicate_bigger_files
-deduplicate_backup_files.sh --silent dir/subdir/backup_to_deduplicate_automatically
-```
+   deduplicate_backup_files.sh dir/subdir/backup_to_deduplicate
+   deduplicate_backup_files.sh --min_size 1024 dir/subdir/backup_to_deduplicate_bigger_files
+   deduplicate_backup_files.sh --silent dir/subdir/backup_to_deduplicate_automatically
 
 ### Requirement:  
 none
