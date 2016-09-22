@@ -198,7 +198,6 @@ ${MKDIR} -p ${DB_DIR}
 echo_if_not_silent "Building files list..."
 CurrentNbFile=0
 ${FIND} "${targetDir}" -type f -size ${MIN_SIZE_OF_FILES} > "${TEMPO_LIST_OF_FILES}"
-cat  ${TEMPO_LIST_OF_FILES}
 echo_if_not_silent "STEP 1: Build a database of files classified by their sizes"
 TotalNbFile=$(${CAT} "${TEMPO_LIST_OF_FILES}" | ${WC} -l)
 begin_time=$(now)
