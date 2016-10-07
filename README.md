@@ -5,8 +5,8 @@ Deduplicate backup files
 Save space in backups : Convert redondent files to hard links
 
 **WARNING**: This program will generate a script to  hard links between files that are identical in order to save storage in archived directories.
-1. Please use only in backup dir where files will NEVER BE MODIFIED!!!
-2. This script may also loose rights and owners of deduplicated files.
+    * 1. Please use only in backup dir where files will NEVER BE MODIFIED!!!
+    * 2. This script may also loose rights and owners of deduplicated files.
 
 ### Configuration:
 none
@@ -15,7 +15,7 @@ none
 | Syntax                             | Meaning|
 | ---------------------------------- | ----------------------------------------------------- |
 | **-s**, **--silent**, **--daemon** | Do not print anything and lauch deduplicate script after analysis.|
-| **-f**, **--fast**                 | Do a fast analysis (ignore files equal or less that 10k)|
+| **-f**, **--fast**                 | Do a fast analysis (ignore files equal or less than 10k)|
 | **-m** *NUM*, **--min_size** *NUM* | Ignore files equal or less than *NUM* bytes.|
 
 ### Examples:
