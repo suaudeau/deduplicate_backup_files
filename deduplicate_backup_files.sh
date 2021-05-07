@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -euo pipefail
+IFS=$'\n\t'
+
 #----------------------------------------------------------------------
 #  Preliminary actions
 #----------------------------------------------------------------------
@@ -18,7 +21,7 @@ die() { echo "$@" 1>&2 ; quit; }
 #===============================================================================
 getPathAndCheckInstall() {
     #argument cannot be empty ==> die
-    if [[ -z "${1}" ]]; then
+    if [ -z "${1}" ]; then
         die "FATAL ERROR: Use function getPathAndCheckInstall with an argument"
     fi
     local application=${1}
@@ -68,7 +71,7 @@ getSizeOfFile() {
 }
 
 now() {
-  ${ECHO} "import time; print time.time()" 2>/dev/null | ${PYTHON}
+  ${ECHO} "import time; print(time.time())" 2>/dev/null | ${PYTHON}
 }
 
 displaytime() {
@@ -174,7 +177,8 @@ shift # past argument or value
 done
 
 #arguments cannot be empty ==> die
-if [[ -z "${1}" ]]; then
+readonly ARGUMENTS="$@"
+if [[ -z "${ARGUMENTS}" ]]; then
     usage
     die "ERROR: Bad number of arguments"
 fi
@@ -204,7 +208,7 @@ begin_time=$(now)
 while IFS= read -r file; do
     #Build a database of files classified by their sizes
     ${ECHO} "${file}" >> ${DB_DIR}/$(getSizeOfFile "${file}").txt
-    ((CurrentNbFile++))
+    ((CurrentNbFile++)) || true
     if (( CurrentNbFile % 200 == 0 )); then
         #every 200 files print an advancement status
         if [[ "${SILENT}" = false ]] ; then
@@ -224,7 +228,8 @@ fi
 #         of files classified by their MD5SUM
 #===========================================================================
 echo_if_not_silent "STEP 2: Build a sub-database of files classified by their hash"
-((TotalNbSizes=0))
+echo 0
+((TotalNbSizes=0)) || true
 #Read each db file for files with the same size
 ${FIND} "${DB_DIR}" -maxdepth 1 -iname "*.txt" -type f > "${TEMPO_LIST_OF_FILES}"
 #TotalNbFile=$(${CAT} ${TEMPO_LIST_OF_FILES} | ${WC} -l)
@@ -233,7 +238,7 @@ while IFS= read -r dbfile_size; do
     #If file has more than one line
     nbLines=$(${CAT} ${dbfile_size} | ${WC} -l)
     if (( nbLines>1 )); then
-        ((nbFile=0))
+        ((nbFile=0)) || true
         referenceMD5sum=""
         # For each same size file writen in this DB.
         while IFS= read -r file; do
@@ -271,11 +276,11 @@ while IFS= read -r dbfile_size; do
                     ${ECHO} "${formated_inode}${file}" >> "${size_dir}/${fileMD5sum}.txt"
                 fi
             fi
-            ((nbFile++))
-            ((TotalNbSizes++))
+            ((nbFile++)) || true
+            ((TotalNbSizes++)) || true
         done < "${dbfile_size}"
     else
-        ((TotalNbSizes++))
+        ((TotalNbSizes++)) || true
     fi
 done < "${TEMPO_LIST_OF_FILES}"
 if [[ "${SILENT}" = false ]] ; then
@@ -290,9 +295,9 @@ fi
 echo_if_not_silent "STEP 3: Generate script"
 #Add empty line in script
 #${ECHO} "echo" >> ${DEDUP_INSTRUCTIONS}
-((TotalSizeSaved=0))
+((TotalSizeSaved=0)) || true
 TotalSizeSaved_Pr="0,0B"
-((TotalNbFileDeduplicated=0))
+((TotalNbFileDeduplicated=0)) || true
 ${FIND} "${DB_DIR}" -type d > "${TEMPO_LIST_OF_DIRS}"
 while read dbdir_md5sum; do
     #suppress root dir
@@ -302,7 +307,7 @@ while read dbdir_md5sum; do
         while read md5file; do
             #Suppress lines with the same inode and then suppress inode info
             ${CAT} ${md5file} | ${SORT} | ${UNIQ} -w 25 | ${CUT} -c 26- > ${md5file}.uniq
-            ((nbFile=0))
+            ((nbFile=0)) || true
             #For each files identical with different inodes
             while IFS= read -r line; do
                 if (( nbFile == 0 )); then
@@ -317,9 +322,9 @@ while read dbdir_md5sum; do
                         ${PRINTF} "  cp -al %q %q\n" "${referenceFile}" "${line}" >> ${DEDUP_INSTRUCTIONS}
                         ${PRINTF} "fi\n" >> ${DEDUP_INSTRUCTIONS}
                         currentSize=$(getSizeOfFile "${referenceFile}")
-                        ((TotalSizeSaved=TotalSizeSaved + currentSize))
+                        ((TotalSizeSaved=TotalSizeSaved + currentSize)) || true
                         TotalSizeSaved_Pr=$(${NUMFMT} --to=iec-i --suffix=B --format="%.1f" ${TotalSizeSaved})
-                        ((TotalNbFileDeduplicated++))
+                        ((TotalNbFileDeduplicated++)) || true
                         if (( TotalNbFileDeduplicated % 20 == 0 )); then
                           if [[ "${SILENT}" = false ]] ; then
                             ${PRINTF} "\r        Files deduplicated : %s     Total saved size : %s" ${TotalNbFileDeduplicated} ${TotalSizeSaved_Pr}
@@ -331,7 +336,7 @@ while read dbdir_md5sum; do
                         ${ECHO} >> ${DEDUP_INSTRUCTIONS}
                     fi
                 fi
-                ((nbFile++))
+                ((nbFile++)) || true
             done < "${md5file}.uniq"
         done < "${TEMPO_LIST_OF_FILES}"
     fi
