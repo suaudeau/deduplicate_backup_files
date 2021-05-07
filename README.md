@@ -43,6 +43,8 @@ Hervé SUAUDEAU, herve.suaudeau (arob.) parisdescartes.fr (CNRS)
 | 1.4     | 30.08.2016 | Script can manage special char in filenames like "'$\%^{} ...|
 | 1.5     |  5.09.2016 | Add time tracking and check that file replacement exist before rm |
 | 1.6     | 16.09.2016 | Add options -s, -f, -m |
+| 1.7     | 07.05.2021 | Compatibility with Python 3 and add unit tests (bats tool) |
+
 
 ### Licence
     GPL v3
