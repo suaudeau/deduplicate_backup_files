@@ -10,7 +10,11 @@ setup() {
   mkdir  ${TARGET_DIR}/dup1
   mkdir  ${TARGET_DIR}/dup1/dup2
   cp -a ${TARGET_DIR}/*.txt ${TARGET_DIR}/dup1
+  chmod 712 ${TARGET_DIR}/dup1/*.txt
+  chown $USER:$USER ${TARGET_DIR}/dup1/*.txt
   cp -a ${TARGET_DIR}/*.txt ${TARGET_DIR}/dup1/dup2
+  chmod 713 ${TARGET_DIR}/dup1/dup2/*.txt
+  chown $USER:adm ${TARGET_DIR}/dup1/dup2/*.txt
   rm ${TARGET_DIR}/dup1/file100k_uniq.txt ${TARGET_DIR}/dup1/dup2/file100k_uniq.txt ${TARGET_DIR}/dup1/dup2/file10k_double.txt ${TARGET_DIR}/dup1/dup2/file1k_double.txt
 }
 
@@ -42,7 +46,7 @@ printlines() {
    [ "${lines[2]}"  = "WARNING: This program will generate a script to do hard links between identical" ]
    [ "${lines[3]}"  = "         files in order to save storage in archived directories." ]
    [ "${lines[4]}"  = "         1) Please use only in backup dir where files will NEVER BE MODIFIED!!!" ]
-   [ "${lines[5]}"  = "         2) This script may also loose rights and owners of deduplicated files." ]
+   [ "${lines[5]}"  = "         2) This script may also loose create and access date of deduplicated files." ]
    [ "${lines[6]}"  = "==================================================================================" ]
    [ "${lines[7]}"  = "Building files list..." ]
    [ "${lines[8]}"  = "STEP 1: Build a database of files classified by their sizes" ]
@@ -53,7 +57,8 @@ printlines() {
    [[ "${lines[17]#*]:}" =~ ^\.\ /tmp/tmp\..*\.deduplicate_instructions\.sh$ ]]
    [ "${#lines[@]}"  = "18" ]
    GENERATED_FILE=$(echo "${lines[17]#*]:}" | cut -d ' ' -f 2)
-   cat ${GENERATED_FILE} | sed "s/${TARGET_DIR//\//\\\/}/\./g" > ${GENERATED_FILE}.cleaned
+   cat ${GENERATED_FILE} | sed "s/${TARGET_DIR//\//\\\/}/\./g" | sed "s/ chown $USER:$USER/ chown USER:USER/g" | sed "s/ chown $USER:adm/ chown USER:adm/g" > ${GENERATED_FILE}.cleaned
+
    [ "" = "$(diff ${GENERATED_FILE}.cleaned ref_files/tmp.deduplicate_instructions.sh)" ]
 }
 

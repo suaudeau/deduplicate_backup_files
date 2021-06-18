@@ -189,7 +189,7 @@ echo_if_not_silent "============================================================
 echo_if_not_silent "WARNING: This program will generate a script to do hard links between identical"
 echo_if_not_silent "         files in order to save storage in archived directories."
 echo_if_not_silent "         1) Please use only in backup dir where files will NEVER BE MODIFIED!!!"
-echo_if_not_silent "         2) This script may also loose rights and owners of deduplicated files."
+echo_if_not_silent "         2) This script may also loose create and access date of deduplicated files."
 echo_if_not_silent "=================================================================================="
 
 #clean temp files
@@ -317,9 +317,13 @@ while read dbdir_md5sum; do
                     inode=$(getInodeOfFile "${line}")
                     if (( referenceInode != inode )); then
                         #Generate instructions: Use printf "%q" for escaping bash characters
-                        ${PRINTF} "if [[ -f %q ]]; then\n" "${referenceFile}" >> ${DEDUP_INSTRUCTIONS}
-                        ${PRINTF} "  rm -f %q\n" "${line}" >> ${DEDUP_INSTRUCTIONS}
-                        ${PRINTF} "  cp -al %q %q\n" "${referenceFile}" "${line}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "if [[ -f \"%q\" ]]; then\n" "${referenceFile}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "  rm -f \"%q\"\n" "${line}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "  cp -al \"%q\" \"%q\"\n" "${referenceFile}" "${line}" >> ${DEDUP_INSTRUCTIONS}
+                        accessRight=$(${STAT} -c%a "${line}")
+                        userAndGroup=$(${STAT} -c%U:%G "${line}")
+                        ${PRINTF} "  chmod %q \"%q\"\n" "${accessRight}" "${line}" >> ${DEDUP_INSTRUCTIONS}
+                        ${PRINTF} "  chown %q \"%q\"\n" "${userAndGroup}" "${line}" >> ${DEDUP_INSTRUCTIONS}
                         ${PRINTF} "fi\n" >> ${DEDUP_INSTRUCTIONS}
                         currentSize=$(getSizeOfFile "${referenceFile}")
                         ((TotalSizeSaved=TotalSizeSaved + currentSize)) || true
