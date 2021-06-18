@@ -44,7 +44,6 @@ Hervé SUAUDEAU, herve.suaudeau (arob.) parisdescartes.fr (CNRS)
 | 1.5     |  5.09.2016 | Add time tracking and check that file replacement exist before rm |
 | 1.6     | 16.09.2016 | Add options -s, -f, -m |
 | 1.7     | 07.05.2021 | Compatibility with Python 3 and add unit tests (bats tool) |
-| 1.8     | 18.06.2021 | Preserve dates, ownership and rights of deduplicated files |
 
 
 ### Licence
